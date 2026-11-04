@@ -1,5 +1,7 @@
 const map = L.map('map',{zoomControl:true,minZoom:3,maxZoom:18}).setView([31.8,35.5],5);
 const baseLayers={
+  standard:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}),
+  satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,maxZoom:18,attribution:'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics et contributeurs'}),
   physical:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:13,maxZoom:18,attribution:'Relief : <a href="https://www.esri.com/">Esri</a>, USGS, NOAA et contributeurs'}),
   topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'})
 };
@@ -23,26 +25,39 @@ function addNatural(){
    const line=L.polyline(r.coords,{color:'#4f91a8',weight:2.4,opacity:.9,interactive:false}).addTo(layers.hydro);
    L.polyline(r.coords,{color:'#000',weight:14,opacity:0,interactive:true}).bindTooltip(r.name,{sticky:true,className:'river-tooltip'}).on('click',()=>showDialog(`<div class="meta">Hydrographie · repère géographique</div><h2>${r.name}</h2><p>Le cours est représenté par une ligne géographique, et non par une surface rectangulaire. Le tracé reste schématique dans cette version et devra être remplacé par une géométrie hydrographique vérifiée.</p>`)).addTo(layers.hydro);
  });
- ATLAS_DATA.natural.vegetation.forEach(v=>L.polygon(v.coords,{color:v.color,weight:.7,opacity:.45,fillColor:v.color,fillOpacity:.055,dashArray:'3 5'}).bindTooltip(v.name).on('click',()=>showDialog(`<div class="meta">Milieu naturel · reconstitution indicative</div><h2>${v.name}</h2><p>Zone illustrative à grande échelle. Elle ne représente pas une limite écologique exacte ni une reconstitution paléoenvironnementale datée.</p>`)).addTo(layers.vegetation));
+ if(map.getZoom()>=5) ATLAS_DATA.natural.vegetation.forEach(v=>L.polygon(v.coords,{color:v.color,weight:.7,opacity:.45,fillColor:v.color,fillOpacity:.055,dashArray:'3 5'}).bindTooltip(v.name).on('click',()=>showDialog(`<div class="meta">Milieu naturel · reconstitution indicative</div><h2>${v.name}</h2><p>Zone illustrative à grande échelle. Elle ne représente pas une limite écologique exacte ni une reconstitution paléoenvironnementale datée.</p>`)).addTo(layers.vegetation));
 }
 function renderHistorical(){
  ['regions','polities','cities','routes','placeLabels'].forEach(id=>clearLayer(layers[id]));
- if($('regions').checked){ATLAS_DATA.regions.filter(r=>currentYear>=r.from&&currentYear<=r.to).forEach(r=>{const region=L.polygon(r.coords,{color:'#8c7554',weight:1.15,opacity:.7,fillColor:'#b89b70',fillOpacity:.085,dashArray:'4 4'});region.bindTooltip(r.name,{sticky:true});region.on('click',()=>showDialog(`<div class="meta">Région historique · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p class="source-note">Limites régionales indicatives : elles varient selon les périodes et ne doivent pas être lues comme des frontières administratives exactes.</p>`));region.addTo(layers.regions);});}
- if($('polities').checked){ATLAS_DATA.polities.filter(p=>currentYear>=p.from&&currentYear<=p.to).forEach(p=>{
+ if($('regions').checked&&map.getZoom()>=5){ATLAS_DATA.regions.filter(r=>currentYear>=r.from&&currentYear<=r.to).forEach(r=>{const region=L.polygon(r.coords,{color:'#8c7554',weight:1.15,opacity:.7,fillColor:'#b89b70',fillOpacity:.085,dashArray:'4 4'});region.bindTooltip(r.name,{sticky:true});region.on('click',()=>showDialog(`<div class="meta">Région historique · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p class="source-note">Limites régionales indicatives : elles varient selon les périodes et ne doivent pas être lues comme des frontières administratives exactes.</p>`));region.addTo(layers.regions);});}
+ if($('polities').checked&&map.getZoom()>=4){ATLAS_DATA.polities.filter(p=>currentYear>=p.from&&currentYear<=p.to).forEach(p=>{
    const poly=L.polygon(p.coords,{color:p.color,weight:1.1,opacity:.65,fillColor:p.color,fillOpacity:.075,dashArray:'5 5'});
    poly.bindTooltip(p.name,{sticky:true});poly.on('click',()=>showDialog(`<div class="meta">Territoire · ${yearLabel(currentYear)}</div><h2>${p.name}</h2><p>${p.description}</p><p><strong>Période indicative :</strong> ${yearLabel(p.from)} à ${yearLabel(p.to)}.</p><p class="source-note">Emprise schématique héritée du prototype : elle ne constitue pas une frontière précise. Les polygones de cette couche devront être remplacés par des géométries historiques sourcées avant d'être considérés comme des limites territoriales.</p>`));poly.addTo(layers.polities);
  });}
- if($('cities').checked){ATLAS_DATA.cities.filter(c=>currentYear>=c.from&&currentYear<=c.to&&activeTestament(c.period)).forEach(c=>{
-   const marker=L.circleMarker(c.coords,{radius:5.5,weight:1.5,color:'#fffdf5',fillColor:'#9b5145',fillOpacity:1});marker.bindTooltip(cityLabel(c));marker.on('click',()=>showDialog(`<div class="meta">Lieu biblique · ${yearLabel(currentYear)}</div><h2>${cityLabel(c)}</h2><p>${c.description}</p><p><strong>Autres noms :</strong> ${c.aliases.join(' · ')}</p><p><strong>Références bibliques :</strong> ${c.refs}</p><p class="source-note">Les noms affichés sur la carte suivent la langue sélectionnée ; les références bibliques demeurent la source première de la fiche.</p>`));marker.addTo(layers.cities);
-   if($('placeLabels').checked){L.marker(c.coords,{interactive:false,icon:L.divIcon({className:'city-map-label',html:cityLabel(c),iconSize:null,iconAnchor:[-8,5]})}).addTo(layers.placeLabels);}
+ if($('cities').checked){ATLAS_DATA.cities.filter(c=>c.coords&&currentYear>=c.from&&currentYear<=c.to&&activeTestament(c.period)).forEach(c=>{
+   const zoom=map.getZoom();
+   const majorAtOverview=['jerusalem','rome','babylon','alexandria','antioch','damascus','nineveh','memphis','joppa'];
+   if(zoom<6 && !majorAtOverview.includes(c.id)) return;
+   const marker=L.circleMarker(c.coords,{radius:zoom<5?4.2:(zoom<7?5:6),weight:1.5,color:'#fffdf5',fillColor:'#9b5145',fillOpacity:1});marker.bindTooltip(cityLabel(c));marker.on('click',()=>showDialog(`<div class="meta">Lieu biblique · ${yearLabel(currentYear)}</div><h2>${cityLabel(c)}</h2><p>${c.description}</p><p><strong>Autres noms :</strong> ${c.aliases.join(' · ')}</p><p><strong>Références bibliques :</strong> ${c.refs}</p><p class="source-note">Les noms affichés sur la carte suivent la langue sélectionnée ; les références bibliques demeurent la source première de la fiche.</p>`));marker.addTo(layers.cities);
+   if($('placeLabels').checked&&zoom>=7){L.marker(c.coords,{interactive:false,icon:L.divIcon({className:'city-map-label',html:cityLabel(c),iconSize:null,iconAnchor:[-8,5]})}).addTo(layers.placeLabels);}
  });}
- if($('routes').checked){ATLAS_DATA.routes.filter(r=>currentYear>=r.from&&currentYear<=r.to&&activeTestament(r.period)).forEach(r=>{
-   const line=L.polyline(r.coords,{color:r.color,weight:3.2,opacity:.86,dashArray:r.certainty==='explicit'?'':'5 7',className:r.certainty==='explicit'?'':'route-uncertain'});line.bindTooltip(r.name);line.on('click',()=>showDialog(`<div class="meta">Itinéraire biblique · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p><strong>Références bibliques :</strong> ${r.refs}</p><p><strong>Nature du tracé :</strong> ${r.certaintyLabel||'Reconstitution indicative ; les étapes intermédiaires ne sont pas toutes précisées par le texte.'}</p>`));line.addTo(layers.routes);
+ if($('routes').checked&&map.getZoom()>=5){ATLAS_DATA.routes.filter(r=>(r.dateUnspecified||currentYear>=r.from&&currentYear<=r.to)&&activeTestament(r.period)).forEach(r=>{
+   const detail=`<div class="meta">Itinéraire biblique · ${r.dateUnspecified?'date non précisée':yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p><strong>Références bibliques :</strong> ${r.refs}</p><p><strong>Nature du tracé :</strong> ${r.certaintyLabel||'Reconstitution indicative ; les étapes intermédiaires ne sont pas toutes précisées par le texte.'}</p>`;
+   if(r.dateUnspecified){
+     const start=r.coords[0];
+     const marker=L.circleMarker(start,{radius:7,weight:2,color:'#fffdf5',fillColor:r.color,fillOpacity:1});
+     marker.bindTooltip(`${r.name} · date inconnue`);
+     marker.on('click',()=>showDialog(detail));
+     marker.addTo(layers.routes);
+   } else {
+     const line=L.polyline(r.coords,{color:r.color,weight:3.2,opacity:.86,dashArray:r.certainty==='explicit'?'':'5 7',className:r.certainty==='explicit'?'':'route-uncertain'});
+     line.bindTooltip(r.name);line.on('click',()=>showDialog(detail));line.addTo(layers.routes);
+   }
  });}
 }
 function toggleLayer(id,enabled){if(enabled){layers[id].addTo(map)}else{map.removeLayer(layers[id])}}
 function refreshLayerVisibility(){['hydro','vegetation','regions','polities','cities','routes','placeLabels'].forEach(id=>toggleLayer(id,$(id).checked));$('vegetationLegend').classList.toggle('hidden',!$('vegetation').checked);renderHistorical();}
-addNatural();renderHistorical();
+addNatural();renderHistorical();map.on('zoomend',()=>{addNatural();renderHistorical();});
 ['hydro','vegetation','regions','polities','cities','routes','placeLabels'].forEach(id=>$(id).addEventListener('change',refreshLayerVisibility));
 ['oldTestament','newTestament'].forEach(id=>$(id).addEventListener('change',renderHistorical));
 $('timeline').addEventListener('input',e=>setYear(e.target.value));$('yearInput').addEventListener('change',e=>setYear(e.target.value));$('yearInput').addEventListener('keydown',e=>{if(e.key==='Enter')setYear(e.target.value)});

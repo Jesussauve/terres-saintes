@@ -40,17 +40,20 @@
         <p class="hint">La chronologie filtre les couches historiques. Les éléments naturels restent visibles quelle que soit la date.</p>
       </section>
 
-      <section class="filter-section">
-        <div class="section-heading"><span class="eyebrow">FONDS DE CARTE</span></div>
+      <details class="filter-section accordion" open>
+        <summary><span class="eyebrow">FONDS DE CARTE</span></summary>
         <select id="basemap" class="wide-select">
-          <option value="physical">Relief physique — sans routes ni noms modernes</option>
-          <option value="topo">Topographique — OpenTopoMap (avec routes)</option>
+          <option value="standard">Carte classique — OpenStreetMap</option>
+          <option value="satellite">Vue satellite — Esri World Imagery</option>
+          <option value="physical">Relief ombré — Esri</option>
+          <option value="topo">Relief topographique — OpenTopoMap</option>
         </select>
-        <p class="hint">Le fond physique privilégie le relief et les formes naturelles. Les noms sont ajoutés par Terres Saintes et suivent la langue choisie. Le fond topographique reste disponible en option.</p>
-      </section>
+        <p class="hint">Choisis entre une carte classique lisible, une imagerie satellite et deux rendus du relief. Les fonds sont fournis par des services tiers et leurs conditions d’utilisation s’appliquent.</p>
+      </details>
 
-      <section class="filter-section">
-        <div class="section-heading"><span class="eyebrow">ÉLÉMENTS NATURELS · STABLES</span><span class="small-tag">Toutes dates</span></div>
+      <details class="filter-section accordion" open>
+        <summary><span class="eyebrow">GÉOGRAPHIE NATURELLE</span><span class="small-tag">Toutes dates</span></summary>
+        <div class="accordion-content">
         <label class="check-row"><input type="checkbox" id="placeLabels" checked><span class="swatch dot"></span><span>Noms des villes (langue choisie)</span></label>
         <label class="check-row"><input type="checkbox" id="hydro" checked><span class="swatch line blue"></span><span>Hydrographie</span></label>
         <div class="check-row"><span class="swatch relief"></span><span>Relief / ombrage inclus au fond physique</span></div>
@@ -62,28 +65,38 @@
           <div><i class="veg cultivated"></i> Cultures / terres cultivées</div>
           <small>Schéma pédagogique, non reconstitution paléoenvironnementale.</small>
         </div>
-      </section>
+        </div>
+      </details>
 
-      <section class="filter-section">
-        <div class="section-heading"><span class="eyebrow">FACTEURS HUMAINS · DATÉS</span></div>
+      <details class="filter-section accordion" open>
+        <summary><span class="eyebrow">LIEUX, PEUPLES ET TERRITOIRES</span></summary>
+        <div class="accordion-content">
+        <div class="nested-group"><strong>Territoires et peuples</strong>
         <label class="check-row"><input type="checkbox" id="regions" checked><span class="swatch area"></span><span>Régions historiques</span></label>
-        <label class="check-row"><input type="checkbox" id="polities"><span class="swatch area"></span><span>Empires et zones d’influence (indicatifs)</span></label>
-        <label class="check-row"><input type="checkbox" id="cities" checked><span class="swatch dot"></span><span>Villes et lieux habités</span></label>
+        <label class="check-row"><input type="checkbox" id="polities"><span class="swatch area"></span><span>Royaumes et empires</span></label>
+        </div>
+        <div class="nested-group"><strong>Lieux bibliques</strong>
+        <label class="check-row"><input type="checkbox" id="cities" checked><span class="swatch dot"></span><span>Villes et sites habités</span></label>
+        </div>
+        <div class="nested-group"><strong>Itinéraires et voyages</strong>
         <label class="check-row"><input type="checkbox" id="routes" checked><span class="swatch route"></span><span>Voyages et itinéraires</span></label>
         <div class="subfilters">
           <label><input type="checkbox" id="oldTestament" checked> Ancien Testament</label>
           <label><input type="checkbox" id="newTestament" checked> Nouveau Testament</label>
-        </div>
+        </div></div>
         <div class="legend-box">
           <div><i class="legend-dot city-dot"></i> Ville</div>
           <div><i class="legend-line old-line"></i> Parcours / Ancien Testament</div>
           <div><i class="legend-line new-line"></i> Parcours / Nouveau Testament</div>
           <div><i class="legend-area"></i> Région ou emprise historique (limites indicatives)</div>
         </div>
-      </section>
+        <p class="hint">Les couches humaines sont filtrées par la chronologie. Les frontières et emprises politiques restent schématiques tant qu’une géométrie précisément sourcée n’est pas disponible.</p>
+        </div>
+      </details>
 
-      <section class="filter-section measure-section">
-        <div class="section-heading"><span class="eyebrow">MESURER UN TRAJET</span></div>
+      <details class="filter-section accordion">
+        <summary><span class="eyebrow">MESURER UN TRAJET</span></summary>
+        <div class="accordion-content">
         <p class="hint">Clique sur deux points de la carte, ou utilise les lieux proposés. Le calcul donne une estimation historique, pas un itinéraire routier moderne.</p>
         <div class="measure-modes">
           <label><input type="radio" name="travelMode" value="walk" checked> À pied</label>
@@ -93,8 +106,9 @@
         <button id="measureBtn" class="primary-button">Commencer une mesure</button>
         <button id="clearMeasure" class="secondary-button">Effacer la mesure</button>
         <div id="measureResult" class="measure-result" aria-live="polite">Aucun trajet mesuré.</div>
-      </section>
-      <footer class="sidebar-footer">Terres Saintes · Version 2 en développement<br>Sources cartographiques créditées sur la carte.</footer>
+        </div>
+      </details>
+      <footer class="sidebar-footer">Terres Saintes · version de travail<br>Les données sont progressivement documentées et vérifiées.</footer>
     </aside>
 
     <section class="map-panel">
@@ -120,7 +134,7 @@
     <p>Un atlas biblique historique destiné à explorer les lieux, les territoires, les milieux naturels et les itinéraires mentionnés dans la Bible catholique.</p>
     <p><strong>Primauté de l’Écriture.</strong> Le texte biblique est la source première pour les événements qu’il rapporte. Les sources historiques, traditionnelles et archéologiques éclairent le contexte ; elles sont présentées séparément et ne remplacent pas le texte biblique.</p><p><strong>Précaution historique.</strong> Les tracés et territoires peuvent être indicatifs lorsque la Bible ne donne pas un itinéraire détaillé ou lorsque les identifications géographiques sont discutées. Les incertitudes sont signalées dans les fiches.</p>
     <p><strong>Gratuité.</strong> Le site est conçu sans compte, publicité ni abonnement. Les fonds cartographiques sont fournis par des services tiers soumis à leurs propres conditions d'utilisation et limites de capacité.</p>
-    <p class="source-note">Carte : © OpenStreetMap contributors ; fond topographique : © OpenTopoMap (CC-BY-SA).</p>
+    <p class="source-note">Carte classique : © OpenStreetMap contributors ; relief : © OpenTopoMap (CC-BY-SA) et Esri ; satellite : Esri World Imagery. Voir les attributions affichées sur la carte.</p>
   </dialog>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
