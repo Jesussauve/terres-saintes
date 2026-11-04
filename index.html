@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Terres Saintes — atlas biblique historique et interactif">
+  <title>Terres Saintes — Atlas biblique</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Terres Saintes, accueil">
+      <span class="brand-mark">✥</span>
+      <span><strong>TERRES SAINTES</strong><small>ATLAS BIBLIQUE HISTORIQUE</small></span>
+    </a>
+    <div class="header-tools">
+      <label class="language-label" for="language">Langue</label>
+      <select id="language" aria-label="Langue">
+        <option value="fr">Français</option><option value="en">English</option><option value="la">Latina</option>
+      </select>
+      <button id="aboutBtn" class="quiet-button">À propos</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" id="sidebar">
+      <section class="timeline-card">
+        <div class="section-heading"><span class="eyebrow">CHRONOLOGIE</span><span id="dateLabel" class="date-label">1000 av. J.-C.</span></div>
+        <input id="timeline" type="range" min="-2000" max="70" step="10" value="-1000" aria-label="Date de la carte">
+        <div class="range-labels"><span>2000 av. J.-C.</span><span>70 apr. J.-C.</span></div>
+        <div class="timeline-controls">
+          <button id="prevPeriod" title="Période précédente">−</button>
+          <button id="playTimeline" class="play-button">▶ Lecture</button>
+          <button id="nextPeriod" title="Période suivante">+</button>
+        </div>
+        <p class="hint">La chronologie filtre les couches historiques. Les éléments naturels restent visibles quelle que soit la date.</p>
+      </section>
+
+      <section class="filter-section">
+        <div class="section-heading"><span class="eyebrow">FONDS DE CARTE</span></div>
+        <select id="basemap" class="wide-select">
+          <option value="osm">Géographique — OpenStreetMap</option>
+          <option value="topo">Topographique — OpenTopoMap</option>
+        </select>
+        <p class="hint">Le fond topographique donne un aperçu du relief. Les courbes de niveau détaillées au 1:25 000 nécessitent des données altimétriques locales supplémentaires.</p>
+      </section>
+
+      <section class="filter-section">
+        <div class="section-heading"><span class="eyebrow">ÉLÉMENTS NATURELS · STABLES</span><span class="small-tag">Toutes dates</span></div>
+        <label class="check-row"><input type="checkbox" id="hydro" checked><span class="swatch line blue"></span><span>Hydrographie</span></label>
+        <label class="check-row"><input type="checkbox" id="relief"><span class="swatch relief"></span><span>Relief / ombrage</span></label>
+        <label class="check-row"><input type="checkbox" id="vegetation"><span class="swatch vegetation"></span><span>Végétation & milieux</span></label>
+        <div id="vegetationLegend" class="legend-box hidden">
+          <div><i class="veg forest"></i> Forêt / maquis</div>
+          <div><i class="veg scrub"></i> Garrigue / steppe</div>
+          <div><i class="veg desert"></i> Désert / milieu aride</div>
+          <div><i class="veg cultivated"></i> Cultures / terres cultivées</div>
+          <small>Schéma pédagogique, non reconstitution paléoenvironnementale.</small>
+        </div>
+      </section>
+
+      <section class="filter-section">
+        <div class="section-heading"><span class="eyebrow">FACTEURS HUMAINS · DATÉS</span></div>
+        <label class="check-row"><input type="checkbox" id="polities" checked><span class="swatch area"></span><span>Territoires et pouvoirs politiques</span></label>
+        <label class="check-row"><input type="checkbox" id="cities" checked><span class="swatch dot"></span><span>Villes et lieux habités</span></label>
+        <label class="check-row"><input type="checkbox" id="routes" checked><span class="swatch route"></span><span>Voyages et itinéraires</span></label>
+        <div class="subfilters">
+          <label><input type="checkbox" id="oldTestament" checked> Ancien Testament</label>
+          <label><input type="checkbox" id="newTestament" checked> Nouveau Testament</label>
+        </div>
+        <div class="legend-box">
+          <div><i class="legend-dot city-dot"></i> Ville</div>
+          <div><i class="legend-line old-line"></i> Parcours / Ancien Testament</div>
+          <div><i class="legend-line new-line"></i> Parcours / Nouveau Testament</div>
+          <div><i class="legend-area"></i> Territoire politique (couleur selon période)</div>
+        </div>
+      </section>
+
+      <section class="filter-section measure-section">
+        <div class="section-heading"><span class="eyebrow">MESURER UN TRAJET</span></div>
+        <p class="hint">Clique sur deux points de la carte, ou utilise les lieux proposés. Le calcul donne une estimation historique, pas un itinéraire routier moderne.</p>
+        <div class="measure-modes">
+          <label><input type="radio" name="travelMode" value="walk" checked> À pied</label>
+          <label><input type="radio" name="travelMode" value="horse"> À cheval</label>
+          <label><input type="radio" name="travelMode" value="sea"> Par mer</label>
+        </div>
+        <button id="measureBtn" class="primary-button">Commencer une mesure</button>
+        <button id="clearMeasure" class="secondary-button">Effacer la mesure</button>
+        <div id="measureResult" class="measure-result" aria-live="polite">Aucun trajet mesuré.</div>
+      </section>
+      <footer class="sidebar-footer">Terres Saintes · Version de démonstration<br>Sources cartographiques créditées sur la carte.</footer>
+    </aside>
+
+    <section class="map-panel">
+      <div id="map" role="application" aria-label="Carte interactive du monde biblique"></div>
+      <div class="map-top-controls">
+        <button id="toggleSidebar" class="map-control" title="Masquer le panneau">☰</button>
+        <button id="homeView" class="map-control" title="Vue générale">⌂</button>
+      </div>
+      <div class="map-caption">Bassin méditerranéen & Proche-Orient · Vue générale</div>
+      <div class="north-arrow">N<br>▲</div>
+    </section>
+  </main>
+
+  <dialog id="infoDialog" class="info-dialog">
+    <button class="dialog-close" id="closeDialog" aria-label="Fermer">×</button>
+    <div id="dialogContent"></div>
+  </dialog>
+
+  <dialog id="aboutDialog" class="info-dialog about-dialog">
+    <button class="dialog-close" id="closeAbout" aria-label="Fermer">×</button>
+    <p class="eyebrow">LE PROJET</p>
+    <h2>Terres Saintes</h2>
+    <p>Un atlas biblique historique destiné à explorer les lieux, les territoires, les milieux naturels et les itinéraires mentionnés dans la Bible catholique.</p>
+    <p><strong>Précaution historique.</strong> Les tracés et territoires de cette première version sont des repères pédagogiques schématiques. Ils ne constituent pas des frontières exactes ni des localisations certaines. Les incertitudes sont signalées dans les fiches.</p>
+    <p><strong>Gratuité.</strong> Le site est conçu sans compte, publicité ni abonnement. Les fonds cartographiques sont fournis par des services tiers soumis à leurs propres conditions d'utilisation et limites de capacité.</p>
+    <p class="source-note">Carte : © OpenStreetMap contributors ; fond topographique : © OpenTopoMap (CC-BY-SA).</p>
+  </dialog>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
