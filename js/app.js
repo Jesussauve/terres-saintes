@@ -1,124 +1,59 @@
 const map = L.map('map',{zoomControl:true,minZoom:3,maxZoom:18}).setView([31.8,35.5],5);
 const baseLayers={
-  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}),
+  physical:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:13,maxZoom:18,attribution:'Relief : <a href="https://www.esri.com/">Esri</a>, USGS, NOAA et contributeurs'}),
   topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'})
 };
-baseLayers.osm.addTo(map);
+baseLayers.physical.addTo(map);
 L.control.scale({metric:true,imperial:false,maxWidth:140,position:'bottomright'}).addTo(map);
-
-const layers={hydro:L.layerGroup().addTo(map),relief:L.layerGroup(),vegetation:L.layerGroup(),polities:L.layerGroup().addTo(map),cities:L.layerGroup().addTo(map),routes:L.layerGroup().addTo(map)};
-let currentYear=-1000, measuring=false, measurePoints=[], measureLayer=L.layerGroup().addTo(map), timelineTimer=null;
+const layers={hydro:L.layerGroup().addTo(map),relief:L.layerGroup(),vegetation:L.layerGroup(),regions:L.layerGroup().addTo(map),polities:L.layerGroup(),cities:L.layerGroup().addTo(map),routes:L.layerGroup().addTo(map),placeLabels:L.layerGroup().addTo(map)};
+let currentYear=-1000, measuring=false, measurePoints=[], measureLayer=L.layerGroup().addTo(map), timelineTimer=null, currentLanguage='fr';
 const $=id=>document.getElementById(id);
-
-function yearLabel(y){
-  if(y<0)return `${Math.abs(y)} av. J.-C.`;
-  if(y===0)return 'Transition conventionnelle';
-  return `${y} apr. J.-C.`;
-}
-function setYear(y){currentYear=Number(y);$('timeline').value=currentYear;$('dateLabel').textContent=yearLabel(currentYear);renderHistorical();}
+function yearLabel(y){if(y<0)return `${Math.abs(y)} av. J.-C.`;if(y===0)return 'Transition conventionnelle';return `${y} apr. J.-C.`;}
+function setYear(y){y=Math.max(-2000,Math.min(70,Math.round(Number(y))));currentYear=y;$('timeline').value=y;$('yearInput').value=y;$('dateLabel').textContent=yearLabel(y);renderHistorical();}
 function activeTestament(period){return period==='old'? $('oldTestament').checked : period==='new'? $('newTestament').checked : ($('oldTestament').checked||$('newTestament').checked);}
 function clearLayer(layer){layer.clearLayers();}
 function showDialog(html){$('dialogContent').innerHTML=html;$('infoDialog').showModal();}
+const cityNames={
+ jerusalem:{fr:'Jérusalem',en:'Jerusalem',la:'Hierosolyma'},bethlehem:{fr:'Bethléem',en:'Bethlehem',la:'Bethlehem'},jericho:{fr:'Jéricho',en:'Jericho',la:'Hiericho'},nazareth:{fr:'Nazareth',en:'Nazareth',la:'Nazareth'},capernaum:{fr:'Capharnaüm',en:'Capernaum',la:'Capharnaum'},damascus:{fr:'Damas',en:'Damascus',la:'Damascus'},antioch:{fr:'Antioche',en:'Antioch',la:'Antiochia'},tarsus:{fr:'Tarse',en:'Tarsus',la:'Tarsus'},ephesus:{fr:'Éphèse',en:'Ephesus',la:'Ephesus'},corinth:{fr:'Corinthe',en:'Corinth',la:'Corinthus'},rome:{fr:'Rome',en:'Rome',la:'Roma'},memphis:{fr:'Memphis',en:'Memphis',la:'Memphis'},babylon:{fr:'Babylone',en:'Babylon',la:'Babylon'},susa:{fr:'Suse',en:'Susa',la:'Susa'},ur:{fr:'Ur',en:'Ur',la:'Ur'},haran:{fr:'Harrân',en:'Harran',la:'Carrhae'},bethel:{fr:'Béthel',en:'Bethel',la:'Bethel'},beersheba:{fr:'Bershéba',en:'Beersheba',la:'Bersabee'},mahanaim:{fr:'Mahanaïm',en:'Mahanaim',la:'Mahanaim'},penuel:{fr:'Pénouël',en:'Penuel',la:'Phanuel'},shechem:{fr:'Sichem',en:'Shechem',la:'Sichem'},joppa:{fr:'Joppé',en:'Joppa',la:'Ioppe'},nineveh:{fr:'Ninive',en:'Nineveh',la:'Ninive'},tigris:{fr:'Tigre',en:'Tigris',la:'Tigris'},ecbatana:{fr:'Ecbatane',en:'Ecbatana',la:'Ecbatana'},rages:{fr:'Raguès',en:'Rages',la:'Ragae'},tarshish:{fr:'Tarsis (identification discutée)',en:'Tarshish (identification debated)',la:'Tharsis (identificatio disputata)'},cana:{fr:'Cana',en:'Cana',la:'Cana'},nain:{fr:'Naïm',en:'Nain',la:'Naim'},magdala:{fr:'Magdala',en:'Magdala',la:'Magdala'},bethsaida:{fr:'Bethsaïde',en:'Bethsaida',la:'Bethsaida'},chorazin:{fr:'Chorazin',en:'Chorazin',la:'Chorazin'},caesarea_philippi:{fr:'Césarée de Philippe',en:'Caesarea Philippi',la:'Caesarea Philippi'}
+};
+function cityLabel(c){return (cityNames[c.id]&&cityNames[c.id][currentLanguage])||c.name;}
 function addNatural(){
-  clearLayer(layers.hydro);clearLayer(layers.vegetation);
-  ATLAS_DATA.natural.rivers.forEach(r=>L.polyline(r.coords,{color:'#548fa3',weight:2.3,opacity:.85}).bindTooltip(r.name).addTo(layers.hydro));
-  ATLAS_DATA.natural.vegetation.forEach(v=>L.polygon(v.coords,{color:v.color,weight:1,fillColor:v.color,fillOpacity:v.fillOpacity,dashArray:'4 4'}).bindTooltip(v.name).addTo(layers.vegetation));
+ clearLayer(layers.hydro);clearLayer(layers.vegetation);
+ ATLAS_DATA.natural.rivers.forEach(r=>{
+   const line=L.polyline(r.coords,{color:'#4f91a8',weight:2.4,opacity:.9,interactive:false}).addTo(layers.hydro);
+   L.polyline(r.coords,{color:'#000',weight:14,opacity:0,interactive:true}).bindTooltip(r.name,{sticky:true,className:'river-tooltip'}).on('click',()=>showDialog(`<div class="meta">Hydrographie · repère géographique</div><h2>${r.name}</h2><p>Le cours est représenté par une ligne géographique, et non par une surface rectangulaire. Le tracé reste schématique dans cette version et devra être remplacé par une géométrie hydrographique vérifiée.</p>`)).addTo(layers.hydro);
+ });
+ ATLAS_DATA.natural.vegetation.forEach(v=>L.polygon(v.coords,{color:v.color,weight:.7,opacity:.45,fillColor:v.color,fillOpacity:.055,dashArray:'3 5'}).bindTooltip(v.name).on('click',()=>showDialog(`<div class="meta">Milieu naturel · reconstitution indicative</div><h2>${v.name}</h2><p>Zone illustrative à grande échelle. Elle ne représente pas une limite écologique exacte ni une reconstitution paléoenvironnementale datée.</p>`)).addTo(layers.vegetation));
 }
 function renderHistorical(){
-  Object.values({polities:layers.polities,cities:layers.cities,routes:layers.routes}).forEach(clearLayer);
-  if($('polities').checked){
-    ATLAS_DATA.polities.filter(p=>currentYear>=p.from&&currentYear<=p.to).forEach(p=>{
-      const poly=L.polygon(p.coords,{color:p.color,weight:1.5,fillColor:p.color,fillOpacity:.23});
-      poly.bindTooltip(p.name,{sticky:true});
-      poly.on('click',()=>showDialog(`<div class="meta">Territoire · ${yearLabel(currentYear)}</div><h2>${p.name}</h2><p>${p.description}</p><p><strong>Période indicative :</strong> ${yearLabel(p.from)} à ${yearLabel(p.to)}.</p><p class="source-note">Emprise schématique ; les frontières et zones de contrôle ont varié.</p>`));
-      poly.addTo(layers.polities);
-    });
-  }
-  if($('cities').checked){
-    ATLAS_DATA.cities.filter(c=>currentYear>=c.from&&currentYear<=c.to&&activeTestament(c.period)).forEach(c=>{
-      const marker=L.circleMarker(c.coords,{radius:6,weight:1.5,color:'#fffdf5',fillColor:'#9b5145',fillOpacity:1});
-      marker.bindTooltip(c.name);
-      marker.on('click',()=>showDialog(`<div class="meta">Lieu biblique · ${yearLabel(currentYear)}</div><h2>${c.name}</h2><p>${c.description}</p><p><strong>Autres noms :</strong> ${c.aliases.join(' · ')}</p><p><strong>Références :</strong> ${c.refs}</p>`));
-      marker.addTo(layers.cities);
-    });
-  }
-  if($('routes').checked){
-    ATLAS_DATA.routes.filter(r=>currentYear>=r.from&&currentYear<=r.to&&activeTestament(r.period)).forEach(r=>{
-      const line=L.polyline(r.coords,{color:r.color,weight:4,opacity:.9,dashArray:'8 5'});
-      line.bindTooltip(r.name);
-      line.on('click',()=>showDialog(`<div class="meta">Itinéraire · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p><strong>Références :</strong> ${r.refs}</p>`));
-      line.addTo(layers.routes);
-    });
-  }
+ ['regions','polities','cities','routes','placeLabels'].forEach(id=>clearLayer(layers[id]));
+ if($('regions').checked){ATLAS_DATA.regions.filter(r=>currentYear>=r.from&&currentYear<=r.to).forEach(r=>{const region=L.polygon(r.coords,{color:'#8c7554',weight:1.15,opacity:.7,fillColor:'#b89b70',fillOpacity:.085,dashArray:'4 4'});region.bindTooltip(r.name,{sticky:true});region.on('click',()=>showDialog(`<div class="meta">Région historique · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p class="source-note">Limites régionales indicatives : elles varient selon les périodes et ne doivent pas être lues comme des frontières administratives exactes.</p>`));region.addTo(layers.regions);});}
+ if($('polities').checked){ATLAS_DATA.polities.filter(p=>currentYear>=p.from&&currentYear<=p.to).forEach(p=>{
+   const poly=L.polygon(p.coords,{color:p.color,weight:1.1,opacity:.65,fillColor:p.color,fillOpacity:.075,dashArray:'5 5'});
+   poly.bindTooltip(p.name,{sticky:true});poly.on('click',()=>showDialog(`<div class="meta">Territoire · ${yearLabel(currentYear)}</div><h2>${p.name}</h2><p>${p.description}</p><p><strong>Période indicative :</strong> ${yearLabel(p.from)} à ${yearLabel(p.to)}.</p><p class="source-note">Emprise schématique héritée du prototype : elle ne constitue pas une frontière précise. Les polygones de cette couche devront être remplacés par des géométries historiques sourcées avant d'être considérés comme des limites territoriales.</p>`));poly.addTo(layers.polities);
+ });}
+ if($('cities').checked){ATLAS_DATA.cities.filter(c=>currentYear>=c.from&&currentYear<=c.to&&activeTestament(c.period)).forEach(c=>{
+   const marker=L.circleMarker(c.coords,{radius:5.5,weight:1.5,color:'#fffdf5',fillColor:'#9b5145',fillOpacity:1});marker.bindTooltip(cityLabel(c));marker.on('click',()=>showDialog(`<div class="meta">Lieu biblique · ${yearLabel(currentYear)}</div><h2>${cityLabel(c)}</h2><p>${c.description}</p><p><strong>Autres noms :</strong> ${c.aliases.join(' · ')}</p><p><strong>Références bibliques :</strong> ${c.refs}</p><p class="source-note">Les noms affichés sur la carte suivent la langue sélectionnée ; les références bibliques demeurent la source première de la fiche.</p>`));marker.addTo(layers.cities);
+   if($('placeLabels').checked){L.marker(c.coords,{interactive:false,icon:L.divIcon({className:'city-map-label',html:cityLabel(c),iconSize:null,iconAnchor:[-8,5]})}).addTo(layers.placeLabels);}
+ });}
+ if($('routes').checked){ATLAS_DATA.routes.filter(r=>currentYear>=r.from&&currentYear<=r.to&&activeTestament(r.period)).forEach(r=>{
+   const line=L.polyline(r.coords,{color:r.color,weight:3.2,opacity:.86,dashArray:r.certainty==='explicit'?'':'5 7',className:r.certainty==='explicit'?'':'route-uncertain'});line.bindTooltip(r.name);line.on('click',()=>showDialog(`<div class="meta">Itinéraire biblique · ${yearLabel(currentYear)}</div><h2>${r.name}</h2><p>${r.description}</p><p><strong>Références bibliques :</strong> ${r.refs}</p><p><strong>Nature du tracé :</strong> ${r.certaintyLabel||'Reconstitution indicative ; les étapes intermédiaires ne sont pas toutes précisées par le texte.'}</p>`));line.addTo(layers.routes);
+ });}
 }
 function toggleLayer(id,enabled){if(enabled){layers[id].addTo(map)}else{map.removeLayer(layers[id])}}
-function refreshLayerVisibility(){
-  ['hydro','relief','vegetation','polities','cities','routes'].forEach(id=>toggleLayer(id,$(id).checked));
-  $('vegetationLegend').classList.toggle('hidden',!$('vegetation').checked);
-}
+function refreshLayerVisibility(){['hydro','vegetation','regions','polities','cities','routes','placeLabels'].forEach(id=>toggleLayer(id,$(id).checked));$('vegetationLegend').classList.toggle('hidden',!$('vegetation').checked);renderHistorical();}
 addNatural();renderHistorical();
-['hydro','relief','vegetation','polities','cities','routes'].forEach(id=>$(id).addEventListener('change',()=>{refreshLayerVisibility();renderHistorical();}));
+['hydro','vegetation','regions','polities','cities','routes','placeLabels'].forEach(id=>$(id).addEventListener('change',refreshLayerVisibility));
 ['oldTestament','newTestament'].forEach(id=>$(id).addEventListener('change',renderHistorical));
-$('timeline').addEventListener('input',e=>setYear(e.target.value));
-$('prevPeriod').onclick=()=>setYear(Math.max(-2000,currentYear-100));
-$('nextPeriod').onclick=()=>setYear(Math.min(70,currentYear+100));
-$('playTimeline').onclick=()=>{
-  if(timelineTimer){clearInterval(timelineTimer);timelineTimer=null;$('playTimeline').textContent='▶ Lecture';return;}
-  $('playTimeline').textContent='Ⅱ Pause';
-  timelineTimer=setInterval(()=>{if(currentYear>=70){clearInterval(timelineTimer);timelineTimer=null;$('playTimeline').textContent='▶ Lecture';return;}setYear(Math.min(70,currentYear+10));},550);
-};
-$('basemap').onchange=e=>{Object.values(baseLayers).forEach(l=>map.removeLayer(l));baseLayers[e.target.value].addTo(map);};
-$('homeView').onclick=()=>map.setView([31.8,35.5],5);
-$('toggleSidebar').onclick=()=>{$('sidebar').classList.toggle('collapsed');setTimeout(()=>map.invalidateSize(),250);};
-
-function haversine(a,b){
-  const R=6371,toRad=v=>v*Math.PI/180,lat1=toRad(a[0]),lat2=toRad(b[0]),dLat=lat2-lat1,dLon=toRad(b[1]-a[1]);
-  const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
-  return 2*R*Math.asin(Math.sqrt(h));
-}
-function durationText(hours){
-  const days=Math.floor(hours/8),remaining=Math.round(hours-days*8);
-  if(days===0)return `${remaining} h environ`;
-  return `${days} jour(s) de voyage`+(remaining?` et ${remaining} h`:'');
-}
-function updateMeasure(){
-  if(measurePoints.length<2){$('measureResult').textContent=`${measurePoints.length}/2 point(s) sélectionné(s).`;return;}
-  const km=haversine(measurePoints[0],measurePoints[1]);
-  const mode=document.querySelector('input[name="travelMode"]:checked').value;
-  let text='';
-  if(mode==='walk'){const days=km/35;text=`${days.toFixed(1)} journée(s) de marche (base : 35 km/jour).`;}
-  if(mode==='horse'){const days=km/70;text=`${days.toFixed(1)} journée(s) à cheval (hypothèse : 70 km/jour, soit deux fois la marche).`;}
-  if(mode==='sea'){const hours=km/5.5;text=`${hours<24?hours.toFixed(1)+' heures':(hours/24).toFixed(1)+' jours'} de navigation (hypothèse : 5,5 km/h de vitesse moyenne). Le vent, les escales et les courants peuvent modifier fortement la durée.`;}
-  $('measureResult').innerHTML=`<strong>Distance directe :</strong> ${km.toFixed(1)} km<br><strong>Durée indicative :</strong> ${text}<br><small>Calcul à vol d'oiseau ; le relief, les routes antiques, les détours et les conditions de voyage ne sont pas encore pris en compte.</small>`;
-}
-$('measureBtn').onclick=()=>{measuring=true;measurePoints=[];measureLayer.clearLayers();$('measureResult').textContent='Clique sur le premier point, puis sur le second.';map.getContainer().style.cursor='crosshair';};
-$('clearMeasure').onclick=()=>{measuring=false;measurePoints=[];measureLayer.clearLayers();$('measureResult').textContent='Aucun trajet mesuré.';map.getContainer().style.cursor='';};
-map.on('click',e=>{
-  if(!measuring)return;
-  measurePoints.push([e.latlng.lat,e.latlng.lng]);
-  L.marker(e.latlng,{icon:L.divIcon({className:'',html:'<div class="measure-pin"></div>',iconSize:[17,17],iconAnchor:[8,8]})}).addTo(measureLayer);
-  if(measurePoints.length===2){
-    L.polyline(measurePoints,{color:'#263a43',weight:3,dashArray:'5 5'}).addTo(measureLayer);
-    measuring=false;map.getContainer().style.cursor='';updateMeasure();
-  }else updateMeasure();
-});
-document.querySelectorAll('input[name="travelMode"]').forEach(r=>r.addEventListener('change',()=>{if(measurePoints.length===2)updateMeasure();}));
-
-const translations={
-  fr:{about:'À propos',lang:'Langue'},
-  en:{about:'About',lang:'Language'},
-  la:{about:'De atlas',lang:'Lingua'}
-};
-$('language').onchange=e=>{
-  const t=translations[e.target.value];
-  $('aboutBtn').textContent=t.about;
-  document.querySelector('.language-label').textContent=t.lang;
-  document.documentElement.lang=e.target.value;
-  // Les fiches géographiques restent en français dans cette version.
-};
-$('aboutBtn').onclick=()=>$('aboutDialog').showModal();
-$('closeAbout').onclick=()=>$('aboutDialog').close();
-$('closeDialog').onclick=()=>$('infoDialog').close();
-$('infoDialog').addEventListener('click',e=>{if(e.target===$('infoDialog'))$('infoDialog').close();});
-$('aboutDialog').addEventListener('click',e=>{if(e.target===$('aboutDialog'))$('aboutDialog').close();});
-setYear(-1000);
+$('timeline').addEventListener('input',e=>setYear(e.target.value));$('yearInput').addEventListener('change',e=>setYear(e.target.value));$('yearInput').addEventListener('keydown',e=>{if(e.key==='Enter')setYear(e.target.value)});
+$('prevPeriod').onclick=()=>setYear(Math.max(-2000,currentYear-1));$('nextPeriod').onclick=()=>setYear(Math.min(70,currentYear+1));
+$('playTimeline').onclick=()=>{if(timelineTimer){clearInterval(timelineTimer);timelineTimer=null;$('playTimeline').textContent='▶ Lecture';return;}$('playTimeline').textContent='Ⅱ Pause';timelineTimer=setInterval(()=>{if(currentYear>=70){clearInterval(timelineTimer);timelineTimer=null;$('playTimeline').textContent='▶ Lecture';return;}setYear(Math.min(70,currentYear+1));},850);};
+$('basemap').onchange=e=>{Object.values(baseLayers).forEach(l=>map.removeLayer(l));baseLayers[e.target.value].addTo(map);};$('homeView').onclick=()=>map.setView([31.8,35.5],5);$('toggleSidebar').onclick=()=>{$('sidebar').classList.toggle('collapsed');setTimeout(()=>map.invalidateSize(),250)};
+function haversine(a,b){const R=6371,toRad=v=>v*Math.PI/180,lat1=toRad(a[0]),lat2=toRad(b[0]),dLat=lat2-lat1,dLon=toRad(b[1]-a[1]),h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function updateMeasure(){if(measurePoints.length<2){$('measureResult').textContent=`${measurePoints.length}/2 point(s) sélectionné(s).`;return;}const km=haversine(measurePoints[0],measurePoints[1]),mode=document.querySelector('input[name="travelMode"]:checked').value;let text='';if(mode==='walk')text=`${(km/35).toFixed(1)} journée(s) de marche (base : 35 km/jour).`;if(mode==='horse')text=`${(km/70).toFixed(1)} journée(s) à cheval (hypothèse illustrative : 70 km/jour).`;if(mode==='sea'){const hours=km/5.5;text=`${hours<24?hours.toFixed(1)+' heures':(hours/24).toFixed(1)+' jours'} de navigation (hypothèse : 5,5 km/h).`}$('measureResult').innerHTML=`<strong>Distance directe :</strong> ${km.toFixed(1)} km<br><strong>Durée indicative :</strong> ${text}<br><small>Calcul à vol d'oiseau ; le relief, les routes antiques, les détours et les conditions de voyage ne sont pas pris en compte.</small>`;}
+$('measureBtn').onclick=()=>{measuring=true;measurePoints=[];measureLayer.clearLayers();$('measureResult').textContent='Clique sur le premier point, puis sur le second.';map.getContainer().style.cursor='crosshair'};$('clearMeasure').onclick=()=>{measuring=false;measurePoints=[];measureLayer.clearLayers();$('measureResult').textContent='Aucun trajet mesuré.';map.getContainer().style.cursor=''};
+map.on('click',e=>{if(!measuring)return;measurePoints.push([e.latlng.lat,e.latlng.lng]);L.marker(e.latlng,{icon:L.divIcon({className:'',html:'<div class="measure-pin"></div>',iconSize:[17,17],iconAnchor:[8,8]})}).addTo(measureLayer);if(measurePoints.length===2){L.polyline(measurePoints,{color:'#263a43',weight:3,dashArray:'5 5'}).addTo(measureLayer);measuring=false;map.getContainer().style.cursor='';updateMeasure()}else updateMeasure()});
+document.querySelectorAll('input[name="travelMode"]').forEach(r=>r.addEventListener('change',()=>{if(measurePoints.length===2)updateMeasure()}));
+const translations={fr:{about:'À propos',lang:'Langue'},en:{about:'About',lang:'Language'},la:{about:'De atlas',lang:'Lingua'}};
+$('language').onchange=e=>{currentLanguage=e.target.value;const t=translations[currentLanguage];$('aboutBtn').textContent=t.about;document.querySelector('.language-label').textContent=t.lang;document.documentElement.lang=currentLanguage;renderHistorical();};
+$('aboutBtn').onclick=()=>$('aboutDialog').showModal();$('closeAbout').onclick=()=>$('aboutDialog').close();$('closeDialog').onclick=()=>$('infoDialog').close();$('infoDialog').addEventListener('click',e=>{if(e.target===$('infoDialog'))$('infoDialog').close()});$('aboutDialog').addEventListener('click',e=>{if(e.target===$('aboutDialog'))$('aboutDialog').close()});setYear(-1000);

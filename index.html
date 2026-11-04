@@ -30,7 +30,7 @@
     <aside class="sidebar" id="sidebar">
       <section class="timeline-card">
         <div class="section-heading"><span class="eyebrow">CHRONOLOGIE</span><span id="dateLabel" class="date-label">1000 av. J.-C.</span></div>
-        <input id="timeline" type="range" min="-2000" max="70" step="10" value="-1000" aria-label="Date de la carte">
+        <div class="timeline-entry"><input id="timeline" type="range" min="-2000" max="70" step="1" value="-1000" aria-label="Date de la carte"><label class="year-entry"><span>Année</span><input id="yearInput" type="number" min="-2000" max="70" step="1" value="-1000" aria-label="Saisir une année"></label></div>
         <div class="range-labels"><span>2000 av. J.-C.</span><span>70 apr. J.-C.</span></div>
         <div class="timeline-controls">
           <button id="prevPeriod" title="Période précédente">−</button>
@@ -43,16 +43,17 @@
       <section class="filter-section">
         <div class="section-heading"><span class="eyebrow">FONDS DE CARTE</span></div>
         <select id="basemap" class="wide-select">
-          <option value="osm">Géographique — OpenStreetMap</option>
-          <option value="topo">Topographique — OpenTopoMap</option>
+          <option value="physical">Relief physique — sans routes ni noms modernes</option>
+          <option value="topo">Topographique — OpenTopoMap (avec routes)</option>
         </select>
-        <p class="hint">Le fond topographique donne un aperçu du relief. Les courbes de niveau détaillées au 1:25 000 nécessitent des données altimétriques locales supplémentaires.</p>
+        <p class="hint">Le fond physique privilégie le relief et les formes naturelles. Les noms sont ajoutés par Terres Saintes et suivent la langue choisie. Le fond topographique reste disponible en option.</p>
       </section>
 
       <section class="filter-section">
         <div class="section-heading"><span class="eyebrow">ÉLÉMENTS NATURELS · STABLES</span><span class="small-tag">Toutes dates</span></div>
+        <label class="check-row"><input type="checkbox" id="placeLabels" checked><span class="swatch dot"></span><span>Noms des villes (langue choisie)</span></label>
         <label class="check-row"><input type="checkbox" id="hydro" checked><span class="swatch line blue"></span><span>Hydrographie</span></label>
-        <label class="check-row"><input type="checkbox" id="relief"><span class="swatch relief"></span><span>Relief / ombrage</span></label>
+        <div class="check-row"><span class="swatch relief"></span><span>Relief / ombrage inclus au fond physique</span></div>
         <label class="check-row"><input type="checkbox" id="vegetation"><span class="swatch vegetation"></span><span>Végétation & milieux</span></label>
         <div id="vegetationLegend" class="legend-box hidden">
           <div><i class="veg forest"></i> Forêt / maquis</div>
@@ -65,7 +66,8 @@
 
       <section class="filter-section">
         <div class="section-heading"><span class="eyebrow">FACTEURS HUMAINS · DATÉS</span></div>
-        <label class="check-row"><input type="checkbox" id="polities" checked><span class="swatch area"></span><span>Territoires et pouvoirs politiques</span></label>
+        <label class="check-row"><input type="checkbox" id="regions" checked><span class="swatch area"></span><span>Régions historiques</span></label>
+        <label class="check-row"><input type="checkbox" id="polities"><span class="swatch area"></span><span>Empires et zones d’influence (indicatifs)</span></label>
         <label class="check-row"><input type="checkbox" id="cities" checked><span class="swatch dot"></span><span>Villes et lieux habités</span></label>
         <label class="check-row"><input type="checkbox" id="routes" checked><span class="swatch route"></span><span>Voyages et itinéraires</span></label>
         <div class="subfilters">
@@ -76,7 +78,7 @@
           <div><i class="legend-dot city-dot"></i> Ville</div>
           <div><i class="legend-line old-line"></i> Parcours / Ancien Testament</div>
           <div><i class="legend-line new-line"></i> Parcours / Nouveau Testament</div>
-          <div><i class="legend-area"></i> Territoire politique (couleur selon période)</div>
+          <div><i class="legend-area"></i> Région ou emprise historique (limites indicatives)</div>
         </div>
       </section>
 
@@ -92,7 +94,7 @@
         <button id="clearMeasure" class="secondary-button">Effacer la mesure</button>
         <div id="measureResult" class="measure-result" aria-live="polite">Aucun trajet mesuré.</div>
       </section>
-      <footer class="sidebar-footer">Terres Saintes · Version de démonstration<br>Sources cartographiques créditées sur la carte.</footer>
+      <footer class="sidebar-footer">Terres Saintes · Version 2 en développement<br>Sources cartographiques créditées sur la carte.</footer>
     </aside>
 
     <section class="map-panel">
@@ -116,7 +118,7 @@
     <p class="eyebrow">LE PROJET</p>
     <h2>Terres Saintes</h2>
     <p>Un atlas biblique historique destiné à explorer les lieux, les territoires, les milieux naturels et les itinéraires mentionnés dans la Bible catholique.</p>
-    <p><strong>Précaution historique.</strong> Les tracés et territoires de cette première version sont des repères pédagogiques schématiques. Ils ne constituent pas des frontières exactes ni des localisations certaines. Les incertitudes sont signalées dans les fiches.</p>
+    <p><strong>Primauté de l’Écriture.</strong> Le texte biblique est la source première pour les événements qu’il rapporte. Les sources historiques, traditionnelles et archéologiques éclairent le contexte ; elles sont présentées séparément et ne remplacent pas le texte biblique.</p><p><strong>Précaution historique.</strong> Les tracés et territoires peuvent être indicatifs lorsque la Bible ne donne pas un itinéraire détaillé ou lorsque les identifications géographiques sont discutées. Les incertitudes sont signalées dans les fiches.</p>
     <p><strong>Gratuité.</strong> Le site est conçu sans compte, publicité ni abonnement. Les fonds cartographiques sont fournis par des services tiers soumis à leurs propres conditions d'utilisation et limites de capacité.</p>
     <p class="source-note">Carte : © OpenStreetMap contributors ; fond topographique : © OpenTopoMap (CC-BY-SA).</p>
   </dialog>
